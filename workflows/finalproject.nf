@@ -11,7 +11,7 @@ WorkflowFinalproject.initialise(params, log)
 
 // TODO nf-core: Add all file path parameters for the pipeline to the list below
 // Check input path parameters to see if they exist
-def checkPathParamList = [ params.input, params.multiqc_config, params.fasta ]
+def checkPathParamList = [ params.input, params.multiqc_config, params.fasta_filter, params.fasta_align ]
 for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
 
 // Check mandatory parameters
@@ -48,9 +48,13 @@ include { INPUT_CHECK } from '../subworkflows/local/input_check'
 //
 // MODULE: Installed directly from nf-core/modules
 //
-include { FASTQC                      } from '../modules/nf-core/fastqc/main'
-include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
-include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
+include { FASTQC                              } from '../modules/nf-core/fastqc/main'
+include { MULTIQC                             } from '../modules/nf-core/multiqc/main'
+include { CUSTOM_DUMPSOFTWAREVERSIONS         } from '../modules/nf-core/custom/dumpsoftwareversions/main'
+include { BOWTIE2_BUILD as BOWTIE2_BUILD_HOST } from '../modules/nf-core/bowtie2/build/main'
+include { BOWTIE2_ALIGN as BOWTIE2_ALIGN_HOST } from '../modules/nf-core/bowtie2/align/main'
+include { BOWTIE2_BUILD as BOWTIE2_BUILD_ORG  } from '../modules/nf-core/bowtie2/build/main'
+include { BOWTIE2_ALIGN as BOWTIE2_ALIGN_ORG  } from '../modules/nf-core/bowtie2/align/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -74,17 +78,48 @@ workflow FINALPROJECT {
     ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
 
     //
+    // Get reads after checking went successfull
+    //
+    ch_reads = INPUT_CHECK.out.reads
+
+    //
     // MODULE: Run FastQC
     //
     FASTQC (
-        INPUT_CHECK.out.reads
+        ch_reads
     )
     ch_versions = ch_versions.mix(FASTQC.out.versions.first())
 
+    //
+    // MODULE: Run bowtie2 to filter reads
+    //
+    BOWTIE2_BUILD_HOST (
+        [ "index", params.fasta_filter ]
+    )
+    ch_versions = ch_versions.mix(BOWTIE2_BUILD_HOST.out.versions)
+
+    BOWTIE2_ALIGN_HOST (
+        ch_reads, BOWTIE2_BUILD_HOST.out.index, true, true
+    )
+    ch_versions = ch_versions.mix(BOWTIE2_ALIGN_HOST.out.versions)
+
+    //
+    // MODULE: Run bowtie2 to align against the target genome
+    //
+    BOWTIE2_BUILD_ORG (
+        [ "index", params.fasta_align ]
+    )
+    ch_versions = ch_versions.mix(BOWTIE2_BUILD_ORG.out.versions)
+
+    BOWTIE2_ALIGN_ORG (
+        BOWTIE2_ALIGN_HOST.out.fastq, BOWTIE2_BUILD_ORG.out.index, true, true
+    )
+    ch_versions = ch_versions.mix(BOWTIE2_ALIGN_ORG.out.versions)
+
+    // Dump software versions
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
     )
-
     //
     // MODULE: MultiQC
     //
