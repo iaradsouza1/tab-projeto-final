@@ -37,7 +37,7 @@ Each row represents a fastq file (single-end) or a pair of fastq files (paired e
 Now, you can run the pipeline using:
 
 ```bash
-nextflow run nf-core/finalproject \
+nextflow run iaradsouza1/finalproject \
    -profile <docker/singularity/.../institute> \
    --input samplesheet.csv \
    --outdir <OUTDIR> \
@@ -53,7 +53,7 @@ For more details, please refer to the [usage documentation](https://nf-co.re/fin
 
 ## Pipeline output
 
-To see the the results of a test run with a full size dataset refer to the [results](https://nf-co.re/finalproject/results) tab on the nf-core website pipeline page.
+To see the results of a test run with a full size dataset refer to the [results](https://nf-co.re/finalproject/results) tab on the nf-core website pipeline page.
 For more details about the output files and reports, please refer to the
 [output documentation](https://nf-co.re/finalproject/output).
 
@@ -61,17 +61,11 @@ For more details about the output files and reports, please refer to the
 
 nf-core/finalproject was originally written by Iara Souza.
 
-We thank the following people for their extensive assistance in the development of this pipeline:
-
 ## Contributions and Support
 
 If you would like to contribute to this pipeline, please see the [contributing guidelines](.github/CONTRIBUTING.md).
 
-For further information or help, don't hesitate to get in touch on the [Slack `#finalproject` channel](https://nfcore.slack.com/channels/finalproject) (you can join with [this invite](https://nf-co.re/join/slack)).
-
 ## Citations
-
-An extensive list of references for the tools used by the pipeline can be found in the [`CITATIONS.md`](CITATIONS.md) file.
 
 You can cite the `nf-core` publication as follows:
 
