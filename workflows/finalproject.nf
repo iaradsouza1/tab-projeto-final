@@ -11,7 +11,7 @@ WorkflowFinalproject.initialise(params, log)
 
 // TODO nf-core: Add all file path parameters for the pipeline to the list below
 // Check input path parameters to see if they exist
-def checkPathParamList = [ params.input, params.multiqc_config, params.fasta_filter, params.fasta_align ]
+def checkPathParamList = [ params.input, params.multiqc_config, params.fasta_filter, params.fasta_align, params.gtf_align ]
 for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
 
 // Check mandatory parameters
@@ -55,6 +55,7 @@ include { BOWTIE2_BUILD as BOWTIE2_BUILD_HOST } from '../modules/nf-core/bowtie2
 include { BOWTIE2_ALIGN as BOWTIE2_ALIGN_HOST } from '../modules/nf-core/bowtie2/align/main'
 include { BOWTIE2_BUILD as BOWTIE2_BUILD_ORG  } from '../modules/nf-core/bowtie2/build/main'
 include { BOWTIE2_ALIGN as BOWTIE2_ALIGN_ORG  } from '../modules/nf-core/bowtie2/align/main'
+include { SUBREAD_FEATURECOUNTS               } from '../modules/nf-core/subread/featurecounts/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -115,6 +116,13 @@ workflow FINALPROJECT {
         BOWTIE2_ALIGN_HOST.out.fastq, BOWTIE2_BUILD_ORG.out.index, true, true
     )
     ch_versions = ch_versions.mix(BOWTIE2_ALIGN_ORG.out.versions)
+
+    //
+    // MODULE: Run featureCounts to obtain the table of gene counts
+    //
+    SUBREAD_FEATURECOUNTS (
+        BOWTIE2_ALIGN_ORG.out.aligned.map{ [ it[0], it[1], params.gtf_align ] }
+    )
 
     // Dump software versions
     CUSTOM_DUMPSOFTWAREVERSIONS (

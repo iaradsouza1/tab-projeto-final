@@ -57,6 +57,11 @@
                     "type": "string",
                     "description": "Fasta file from the target genome",
                     "format": "file-path"
+                },
+                "gtf_align": {
+                    "type": "string",
+                    "description": "GTF file for the target organism.",
+                    "format": "file-path"
                 }
             },
             "required": ["fasta_filter", "fasta_align"]
