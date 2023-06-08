@@ -9,14 +9,13 @@ def summary_params = NfcoreSchema.paramsSummaryMap(workflow, params)
 // Validate input parameters
 WorkflowFinalproject.initialise(params, log)
 
-// TODO nf-core: Add all file path parameters for the pipeline to the list below
 // Check input path parameters to see if they exist
-def checkPathParamList = [ params.input, params.multiqc_config, params.fasta_filter, params.fasta_align ]
+def checkPathParamList = [ params.input, params.multiqc_config, params.fasta_filter, params.fasta_align, params.gtf_align ]
 for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
 
 // Check mandatory parameters
 if (params.input) { ch_input = file(params.input) } else { exit 1, 'Input samplesheet not specified!' }
-
+if (params.attribute == null ) { exit 1, 'You must specify a feature type (e.g., gene_id or exon) to count reads.' }
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     CONFIG FILES
@@ -55,6 +54,8 @@ include { BOWTIE2_BUILD as BOWTIE2_BUILD_HOST } from '../modules/nf-core/bowtie2
 include { BOWTIE2_ALIGN as BOWTIE2_ALIGN_HOST } from '../modules/nf-core/bowtie2/align/main'
 include { BOWTIE2_BUILD as BOWTIE2_BUILD_ORG  } from '../modules/nf-core/bowtie2/build/main'
 include { BOWTIE2_ALIGN as BOWTIE2_ALIGN_ORG  } from '../modules/nf-core/bowtie2/align/main'
+include { SUBREAD_FEATURECOUNTS               } from '../modules/nf-core/subread/featurecounts/main'
+include { GATHER_COUNTS                       } from '../modules/local/gather_counts'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -116,10 +117,23 @@ workflow FINALPROJECT {
     )
     ch_versions = ch_versions.mix(BOWTIE2_ALIGN_ORG.out.versions)
 
+    //
+    // MODULE: Run featureCounts to obtain the table of gene counts
+    //
+    SUBREAD_FEATURECOUNTS (
+        BOWTIE2_ALIGN_ORG.out.aligned.map{ [ it[0], it[1], params.gtf_align ] }, params.attribute
+    )
+    ch_versions = ch_versions.mix(SUBREAD_FEATURECOUNTS.out.versions)
+
+    GATHER_COUNTS(
+        SUBREAD_FEATURECOUNTS.out.counts.collect{it[1]}
+    )
+
     // Dump software versions
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
     )
+
     //
     // MODULE: MultiQC
     //
