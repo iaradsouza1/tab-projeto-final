@@ -5,14 +5,14 @@ library(purrr)
 
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) < 1) {
-    stop("Usage: get_counts.R <feature_counts_files>", call. = FALSE)
+    stop("Usage: get_counts.r <feature_counts_files>", call. = FALSE)
 }
 
-files <- args[1]
+files <- unlist(strsplit(args, split = " "))
 
 map(files, ~ {
   feature_counts <- read.table(.x, header = TRUE) %>%
-    select(1, length(feature_counts))
+    select(1, 7)
 }) %>%
   reduce(inner_join, by = "Geneid") -> count_table
 
