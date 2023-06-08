@@ -116,7 +116,7 @@ workflow FINALPROJECT {
             params.seq_center,
             params.seq_platform
         )
-        ch_versions = ch_versions.mix(STAR_HOST.out.ch_versions)
+        ch_versions = ch_versions.mix(STAR_HOST.out.versions)
         ch_multiqc_star_samples_to_host = STAR_HOST.out.for_multiqc
 
     //
@@ -126,73 +126,20 @@ workflow FINALPROJECT {
     STAR_ORG(
             PREPARE_GENOME.out.fasta_al,
             PREPARE_GENOME.out.gtf_al,
-            STAR_HOST.out.star_unmapped,
+            STAR_HOST.out.result_unmapped,
             params.save_unmapped,
             params.star_index,
             params.seq_center,
             params.seq_platform
     )
 
-    ch_versions = ch_versions.mix(STAR_ORG.out.ch_versions)
+    ch_versions = ch_versions.mix(STAR_ORG.out.versions)
     ch_multiqc_star_unmapped_to_org = STAR_ORG.out.for_multiqc
 
 
-    //
-    // MODULE: Run bowtie2 to filter reads
-    //
- /*   BOWTIE2_BUILD_HOST (
-        [ "index", params.fasta_filter ]
-    )
-    ch_versions = ch_versions.mix(BOWTIE2_BUILD_HOST.out.versions)
+}
 
-    BOWTIE2_ALIGN_HOST (
-        ch_reads, BOWTIE2_BUILD_HOST.out.index, true, true
-    )
-    ch_versions = ch_versions.mix(BOWTIE2_ALIGN_HOST.out.versions)
-
-    //
-    // MODULE: Run bowtie2 to align against the target genome
-    //
-    BOWTIE2_BUILD_ORG (
-        [ "index", params.fasta_align ]
-    )
-    ch_versions = ch_versions.mix(BOWTIE2_BUILD_ORG.out.versions)
-
-    BOWTIE2_ALIGN_ORG (
-        BOWTIE2_ALIGN_HOST.out.fastq, BOWTIE2_BUILD_ORG.out.index, true, true
-    )
-    ch_versions = ch_versions.mix(BOWTIE2_ALIGN_ORG.out.versions)
-
-    // Dump software versions
-    CUSTOM_DUMPSOFTWAREVERSIONS (
-        ch_versions.unique().collectFile(name: 'collated_versions.yml')
-    )*/
-    //
-    // MODULE: MultiQC
-    //
-    /*workflow_summary    = WorkflowFinalproject.paramsSummaryMultiqc(workflow, summary_params)
-    ch_workflow_summary = Channel.value(workflow_summary)
-
-    methods_description    = WorkflowFinalproject.methodsDescriptionText(workflow, ch_multiqc_custom_methods_description)
-    ch_methods_description = Channel.value(methods_description)
-
-    ch_multiqc_files = Channel.empty()
-    ch_multiqc_files = ch_multiqc_files.mix(ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
-    ch_multiqc_files = ch_multiqc_files.mix(ch_methods_description.collectFile(name: 'methods_description_mqc.yaml'))
-    ch_multiqc_files = ch_multiqc_files.mix(CUSTOM_DUMPSOFTWAREVERSIONS.out.mqc_yml.collect())
-    ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]}.ifEmpty([]))
-
-    MULTIQC (
-        ch_multiqc_files.collect(),
-        ch_multiqc_config.toList(),
-        ch_multiqc_custom_config.toList(),
-        ch_multiqc_logo.toList()
-    )
-    multiqc_report = MULTIQC.out.report.toList()
-*/}
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     COMPLETION EMAIL AND SUMMARY
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */

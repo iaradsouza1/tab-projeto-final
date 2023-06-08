@@ -23,7 +23,7 @@ workflow PREPARE_GENOME {
     ch_versions = Channel.empty()
 
     //
-    //Host data
+    //Host data unzip
     //
     if (gtf_filter.endsWith('.gz')) {
         ch_gtf_filter      = GUNZIP_GTF ( [ [:], gtf_filter ] ).gunzip.map { it[1] }
@@ -38,8 +38,9 @@ workflow PREPARE_GENOME {
     } else {
         ch_fasta_filter = file(fasta_filter)
     }
+
     //
-    //Target organism data
+    //Target organism data unzip
     //
     if (gtf_align.endsWith('.gz')) {
         ch_gtf_align      = GUNZIP_GTF1 ( [ [:], gtf_align ] ).gunzip.map { it[1] }

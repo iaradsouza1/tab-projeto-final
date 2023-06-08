@@ -32,10 +32,8 @@ workflow STARSOLO {
         STAR_GENOMEGENERATE (
         genome_fasta,gtf
     )
-        ch_versions = ch_versions.mix(STAR_GENOMEGENERATE.out.versions)
     }
-
-    ch_idx = STAR_GENOMEGENERATE.out.index.collect()
+        ch_idx = STAR_GENOMEGENERATE.out.index.collect()
 
     //
     // Perform mapping with STAR
@@ -49,13 +47,13 @@ workflow STARSOLO {
         seq_center,
         seq_platform
     )
-    //ch_versions = ch_versions.mix(STAR_ALIGN.out.versions)
+        ch_versions = ch_versions.mix(STAR_ALIGN.out.versions, STAR_GENOMEGENERATE.out.versions)
 
 
     emit:
-    ch_versions
-    index  = star_index
-    star_result = STAR_ALIGN.out.tab
-    star_unmapped = STAR_ALIGN.out.unmapped
-    for_multiqc = STAR_ALIGN.out.log_final
+    versions              = ch_versions
+    index                 = ch_idx
+    result_align          = STAR_ALIGN.out.tab
+    result_unmapped       = STAR_ALIGN.out.unmapped
+    for_multiqc           = STAR_ALIGN.out.log_final
 }
