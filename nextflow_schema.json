@@ -62,6 +62,12 @@
                     "type": "string",
                     "description": "GTF file for the target organism.",
                     "format": "file-path"
+                },
+                "attribute": {
+                    "type": "string",
+                    "default": "gene_id",
+                    "description": "Attribute to count reads",
+                    "enum": ["gene_id", "gene", "transcript", "exon"]
                 }
             },
             "required": ["fasta_filter", "fasta_align"]

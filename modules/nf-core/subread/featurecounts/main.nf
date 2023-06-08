@@ -9,6 +9,7 @@ process SUBREAD_FEATURECOUNTS {
 
     input:
     tuple val(meta), path(bams), path(annotation)
+    val attribute
 
     output:
     tuple val(meta), path("*featureCounts.txt")        , emit: counts
@@ -35,6 +36,7 @@ process SUBREAD_FEATURECOUNTS {
         $paired_end \\
         -T $task.cpus \\
         -a $annotation \\
+        -g $attribute \\
         -s $strandedness \\
         -o ${prefix}.featureCounts.txt \\
         ${bams.join(' ')}
