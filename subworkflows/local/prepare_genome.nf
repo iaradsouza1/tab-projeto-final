@@ -56,9 +56,9 @@ workflow PREPARE_GENOME {
     }
 
     emit:
-    fasta_filter         = ch_fasta_filter
-    gtf_filter           = ch_gtf_filter
-    fasta_align          = ch_fasta_align
-    gtf_align            = ch_gtf_align
-    versions             = ch_versions
+    fasta_fil         = ch_fasta_filter
+    gtf_fil           = ch_gtf_filter
+    fasta_al          = ch_fasta_align
+    gtf_al            = ch_gtf_align
+    versions          = ch_versions
 }

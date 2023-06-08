@@ -108,8 +108,8 @@ workflow FINALPROJECT {
     // MODULE: Run STAR to filter reads against host
     //
     STAR_HOST(
-            PREPARE_GENOME.out.fasta_filter,
-            PREPARE_GENOME.out.gtf_filter,
+            PREPARE_GENOME.out.fasta_fil,
+            PREPARE_GENOME.out.gtf_fil,
             ch_reads,
             params.save_unmapped,
             params.star_index,
@@ -117,26 +117,24 @@ workflow FINALPROJECT {
             params.seq_platform
         )
         ch_versions = ch_versions.mix(STAR_HOST.out.ch_versions)
-        ch_multiqc_star = STAR_HOST.out.for_multiqc
+        ch_multiqc_star_samples_to_host = STAR_HOST.out.for_multiqc
 
     //
     // MODULE: Run STAR to align unmapped reads against organism of interest
     //
 
     STAR_ORG(
-    PREPARE_GENOME.out.fasta_align,
-    PREPARE_GENOME.out.gtf_align,
-    ch_reads,
-    params.save_unmapped,
-    params.star_index,
-    params.seq_center,
-    params.seq_platform
+            PREPARE_GENOME.out.fasta_al,
+            PREPARE_GENOME.out.gtf_al,
+            STAR_HOST.out.star_unmapped,
+            params.save_unmapped,
+            params.star_index,
+            params.seq_center,
+            params.seq_platform
     )
 
     ch_versions = ch_versions.mix(STAR_ORG.out.ch_versions)
-    ch_star_index = STAR_ORG.out.star_index
-    ch_unmapped_filter = STAR_ORG.out.star_unmapped
-    ch_multiqc_star = STAR_ORG.out.for_multiqc*/
+    ch_multiqc_star_unmapped_to_org = STAR_ORG.out.for_multiqc
 
 
     //

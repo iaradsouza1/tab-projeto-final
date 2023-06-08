@@ -35,12 +35,14 @@ workflow STARSOLO {
         ch_versions = ch_versions.mix(STAR_GENOMEGENERATE.out.versions)
     }
 
+    ch_idx = STAR_GENOMEGENERATE.out.index.collect()
+
     //
     // Perform mapping with STAR
     //
     STAR_ALIGN(
         reads,
-        STAR_GENOMEGENERATE.out.index,
+        ch_idx,
         gtf,
         save_unmapped,
         true,
