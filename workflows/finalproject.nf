@@ -55,6 +55,9 @@ include { BOWTIE2_BUILD as BOWTIE2_BUILD_HOST } from '../modules/nf-core/bowtie2
 include { BOWTIE2_ALIGN as BOWTIE2_ALIGN_HOST } from '../modules/nf-core/bowtie2/align/main'
 include { BOWTIE2_BUILD as BOWTIE2_BUILD_ORG  } from '../modules/nf-core/bowtie2/build/main'
 include { BOWTIE2_ALIGN as BOWTIE2_ALIGN_ORG  } from '../modules/nf-core/bowtie2/align/main'
+include { STARSOLO as STAR_HOST               } from '../subworkflows/local/starsolo'
+include { STARSOLO as STAR_ORG                } from '../subworkflows/local/starsolo'
+include { PREPARE_GENOME                      } from '../subworkflows/local/prepare_genome'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -82,6 +85,7 @@ workflow FINALPROJECT {
     //
     ch_reads = INPUT_CHECK.out.reads
 
+
     //
     // MODULE: Run FastQC
     //
@@ -91,9 +95,54 @@ workflow FINALPROJECT {
     ch_versions = ch_versions.mix(FASTQC.out.versions.first())
 
     //
+    //Unzip files
+    //
+    PREPARE_GENOME(
+        params.fasta_filter,
+        params.gtf_filter,
+        params.fasta_align,
+        params.gtf_align
+    )
+
+    //
+    // MODULE: Run STAR to filter reads against host
+    //
+    STAR_HOST(
+            PREPARE_GENOME.out.fasta_filter,
+            PREPARE_GENOME.out.gtf_filter,
+            ch_reads,
+            params.save_unmapped,
+            params.star_index,
+            params.seq_center,
+            params.seq_platform
+        )
+        ch_versions = ch_versions.mix(STAR_HOST.out.ch_versions)
+        ch_multiqc_star = STAR_HOST.out.for_multiqc
+
+    //
+    // MODULE: Run STAR to align unmapped reads against organism of interest
+    //
+
+    STAR_ORG(
+    PREPARE_GENOME.out.fasta_align,
+    PREPARE_GENOME.out.gtf_align,
+    ch_reads,
+    params.save_unmapped,
+    params.star_index,
+    params.seq_center,
+    params.seq_platform
+    )
+
+    ch_versions = ch_versions.mix(STAR_ORG.out.ch_versions)
+    ch_star_index = STAR_ORG.out.star_index
+    ch_unmapped_filter = STAR_ORG.out.star_unmapped
+    ch_multiqc_star = STAR_ORG.out.for_multiqc*/
+
+
+    //
     // MODULE: Run bowtie2 to filter reads
     //
-    BOWTIE2_BUILD_HOST (
+ /*   BOWTIE2_BUILD_HOST (
         [ "index", params.fasta_filter ]
     )
     ch_versions = ch_versions.mix(BOWTIE2_BUILD_HOST.out.versions)
@@ -119,11 +168,11 @@ workflow FINALPROJECT {
     // Dump software versions
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
-    )
+    )*/
     //
     // MODULE: MultiQC
     //
-    workflow_summary    = WorkflowFinalproject.paramsSummaryMultiqc(workflow, summary_params)
+    /*workflow_summary    = WorkflowFinalproject.paramsSummaryMultiqc(workflow, summary_params)
     ch_workflow_summary = Channel.value(workflow_summary)
 
     methods_description    = WorkflowFinalproject.methodsDescriptionText(workflow, ch_multiqc_custom_methods_description)
@@ -142,7 +191,7 @@ workflow FINALPROJECT {
         ch_multiqc_logo.toList()
     )
     multiqc_report = MULTIQC.out.report.toList()
-}
+*/}
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
