@@ -1,5 +1,4 @@
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     VALIDATE INPUTS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
@@ -36,8 +35,9 @@ ch_multiqc_custom_methods_description = params.multiqc_methods_description ? fil
 //
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
-include { INPUT_CHECK } from '../subworkflows/local/input_check'
-
+include { INPUT_CHECK      } from '../subworkflows/local/input_check'
+include { STAR_WORKFLOW    } from '../subworkflows/local/star'
+include { BOWTIE2_WORKFLOW } from '../subworkflows/local/bowtie2'
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT NF-CORE MODULES/SUBWORKFLOWS
@@ -47,16 +47,9 @@ include { INPUT_CHECK } from '../subworkflows/local/input_check'
 //
 // MODULE: Installed directly from nf-core/modules
 //
-include { FASTQC                              } from '../modules/nf-core/fastqc/main'
-include { MULTIQC                             } from '../modules/nf-core/multiqc/main'
-include { CUSTOM_DUMPSOFTWAREVERSIONS         } from '../modules/nf-core/custom/dumpsoftwareversions/main'
-include { BOWTIE2_BUILD as BOWTIE2_BUILD_HOST } from '../modules/nf-core/bowtie2/build/main'
-include { BOWTIE2_ALIGN as BOWTIE2_ALIGN_HOST } from '../modules/nf-core/bowtie2/align/main'
-include { BOWTIE2_BUILD as BOWTIE2_BUILD_ORG  } from '../modules/nf-core/bowtie2/build/main'
-include { BOWTIE2_ALIGN as BOWTIE2_ALIGN_ORG  } from '../modules/nf-core/bowtie2/align/main'
-include { SUBREAD_FEATURECOUNTS               } from '../modules/nf-core/subread/featurecounts/main'
-include { GATHER_COUNTS                       } from '../modules/local/gather_counts'
-
+include { FASTQC                      } from '../modules/nf-core/fastqc/main'
+include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
+include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     RUN MAIN WORKFLOW
@@ -70,73 +63,39 @@ workflow FINALPROJECT {
 
     ch_versions = Channel.empty()
 
-    //
-    // SUBWORKFLOW: Read in samplesheet, validate and stage input files
-    //
     INPUT_CHECK (
         ch_input
     )
     ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
 
-    //
-    // Get reads after checking went successfull
-    //
     ch_reads = INPUT_CHECK.out.reads
 
-    //
-    // MODULE: Run FastQC
-    //
     FASTQC (
         ch_reads
     )
     ch_versions = ch_versions.mix(FASTQC.out.versions.first())
 
-    //
-    // MODULE: Run bowtie2 to filter reads
-    //
-    BOWTIE2_BUILD_HOST (
-        [ "index", params.fasta_filter ]
-    )
-    ch_versions = ch_versions.mix(BOWTIE2_BUILD_HOST.out.versions)
-
-    BOWTIE2_ALIGN_HOST (
-        ch_reads, BOWTIE2_BUILD_HOST.out.index, true, true
-    )
-    ch_versions = ch_versions.mix(BOWTIE2_ALIGN_HOST.out.versions)
-
-    //
-    // MODULE: Run bowtie2 to align against the target genome
-    //
-    BOWTIE2_BUILD_ORG (
-        [ "index", params.fasta_align ]
-    )
-    ch_versions = ch_versions.mix(BOWTIE2_BUILD_ORG.out.versions)
-
-    BOWTIE2_ALIGN_ORG (
-        BOWTIE2_ALIGN_HOST.out.fastq, BOWTIE2_BUILD_ORG.out.index, true, true
-    )
-    ch_versions = ch_versions.mix(BOWTIE2_ALIGN_ORG.out.versions)
-
-    //
-    // MODULE: Run featureCounts to obtain the table of gene counts
-    //
-    SUBREAD_FEATURECOUNTS (
-        BOWTIE2_ALIGN_ORG.out.aligned.map{ [ it[0], it[1], params.gtf_align ] }, params.attribute
-    )
-    ch_versions = ch_versions.mix(SUBREAD_FEATURECOUNTS.out.versions)
-
-    GATHER_COUNTS(
-        SUBREAD_FEATURECOUNTS.out.counts.collect{it[1]}
+    STAR_WORKFLOW(
+        params.fasta_filter,
+        params.gtf_filter,
+        params.fasta_align,
+        params.gtf_align,
+        ch_reads,
+        params.attribute
     )
 
-    // Dump software versions
+    BOWTIE2_WORKFLOW(
+        params.fasta_filter,
+        params.fasta_align,
+        params.gtf_align,
+        ch_reads,
+        params.attribute
+    )
+
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
     )
 
-    //
-    // MODULE: MultiQC
-    //
     workflow_summary    = WorkflowFinalproject.paramsSummaryMultiqc(workflow, summary_params)
     ch_workflow_summary = Channel.value(workflow_summary)
 
@@ -148,8 +107,8 @@ workflow FINALPROJECT {
     ch_multiqc_files = ch_multiqc_files.mix(ch_methods_description.collectFile(name: 'methods_description_mqc.yaml'))
     ch_multiqc_files = ch_multiqc_files.mix(CUSTOM_DUMPSOFTWAREVERSIONS.out.mqc_yml.collect())
     ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]}.ifEmpty([]))
-    ch_multiqc_files = ch_multiqc_files.mix(BOWTIE2_ALIGN_HOST.out.log.collect{it[1]}.ifEmpty([]))
-    ch_multiqc_files = ch_multiqc_files.mix(BOWTIE2_ALIGN_ORG.out.log.collect{it[1]}.ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(STAR_WORKFLOW.out.log_star.collect{it[1]}.ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(BOWTIE2_WORKFLOW.out.log_bowtie2.collect{it[1]}.ifEmpty([]))
 
     MULTIQC (
         ch_multiqc_files.collect(),
