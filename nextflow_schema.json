@@ -68,6 +68,11 @@
                     "default": "gene_id",
                     "description": "Attribute to count reads",
                     "enum": ["gene_id", "gene", "transcript", "exon"]
+                },
+                "gtf_filter": {
+                    "type": "string",
+                    "description": "GTF for the host organism",
+                    "format": "file-path"
                 }
             },
             "required": ["fasta_filter", "fasta_align"]

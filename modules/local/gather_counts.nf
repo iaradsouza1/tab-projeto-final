@@ -7,8 +7,8 @@ process GATHER_COUNTS {
     path feature_counts
 
     output:
-    path "count_table.txt"
-    path "count_table.rds"
+    path "count_table.txt" , emit: count_table_txt
+    path "count_table.rds" , emit: count_table_rds
 
     when:
     task.ext.when == null || task.ext.when
