@@ -101,7 +101,8 @@ workflow FINALPROJECT {
         params.fasta_filter,
         params.gtf_filter,
         params.fasta_align,
-        params.gtf_align
+        params.gtf_align,
+        params.star_index
     )
 
     //
