@@ -11,9 +11,9 @@ workflow STARSOLO {
     take:
     genome_fasta
     gtf
+    star_index
     reads
     save_unmapped
-    star_index
     seq_center
     seq_platform
 
