@@ -58,4 +58,5 @@ workflow STARSOLO {
     result_align          = STAR_ALIGN.out.tab
     result_unmapped       = STAR_ALIGN.out.unmapped
     for_multiqc           = STAR_ALIGN.out.log_final
+    read_per_gene_tab     = STAR_ALIGN.out.read_per_gene_tab
 }

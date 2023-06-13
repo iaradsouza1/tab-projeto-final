@@ -57,9 +57,39 @@
                     "type": "string",
                     "description": "Fasta file from the target genome",
                     "format": "file-path"
+                },
+                "gtf_filter": {
+                    "type": "string",
+                    "description": "gtf file from the genome to be used to build index on the filtering step"
+                },
+                "star_host_index": {
+                    "type": "string",
+                    "description": "STAR index from the genome to be used on filtering step"
+                },
+                "gtf_align": {
+                    "type": "string",
+                    "description": "gtf file from the target genome to build STAR index"
+                },
+                "star_org_index": {
+                    "type": "string",
+                    "description": "STAR index from the target genome"
+                },
+                "seq_center": {
+                    "type": "string",
+                    "description": "Sequencing Center"
+                },
+                "seq_platform": {
+                    "type": "string",
+                    "description": "Sequencing Plataform"
+                },
+                "save_unmapped": {
+                    "type": "string",
+                    "default": "Fastx",
+                    "hidden": true,
+                    "description": "Param to --outReadsUnmapped (if set by none may crash the pipeline)"
                 }
             },
-            "required": ["fasta_filter", "fasta_align"]
+            "required": ["fasta_filter", "fasta_align", "gtf_filter", "gtf_align"]
         },
         "institutional_config_options": {
             "title": "Institutional config options",
