@@ -10,14 +10,7 @@ class WorkflowFinalproject {
     //
     // Check and validate parameters
     //
-    public static void initialise(params, log) {
-        genomeExistsError(params, log)
-
-
-        if (!params.fasta) {
-            Nextflow.error "Genome fasta file not specified with e.g. '--fasta genome.fa' or via a detectable config file."
-        }
-    }
+    public static void initialise(params, log) {}
 
     //
     // Get workflow summary for MultiQC

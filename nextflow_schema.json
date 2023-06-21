@@ -48,37 +48,48 @@
             "fa_icon": "fas fa-dna",
             "description": "Reference genome related files and options required for the workflow.",
             "properties": {
-                "genome": {
+                "fasta_filter": {
                     "type": "string",
-                    "description": "Name of iGenomes reference.",
-                    "fa_icon": "fas fa-book",
-                    "help_text": "If using a reference genome configured in the pipeline using iGenomes, use this parameter to give the ID for the reference. This is then used to build the full paths for all required reference genome files e.g. `--genome GRCh38`. \n\nSee the [nf-core website docs](https://nf-co.re/usage/reference_genomes) for more details."
+                    "description": "Fasta file from the genome to be used on the filtering step",
+                    "format": "file-path"
                 },
-                "fasta": {
+                "fasta_align": {
                     "type": "string",
-                    "format": "file-path",
-                    "mimetype": "text/plain",
-                    "pattern": "^\\S+\\.fn?a(sta)?(\\.gz)?$",
-                    "description": "Path to FASTA genome file.",
-                    "help_text": "This parameter is *mandatory* if `--genome` is not specified. If you don't have a BWA index available this will be generated for you automatically. Combine with `--save_reference` to save BWA index for future runs.",
-                    "fa_icon": "far fa-file-code"
+                    "description": "Fasta file from the target genome",
+                    "format": "file-path"
                 },
-                "igenomes_base": {
+                "gtf_filter": {
                     "type": "string",
-                    "format": "directory-path",
-                    "description": "Directory / URL base for iGenomes references.",
-                    "default": "s3://ngi-igenomes/igenomes",
-                    "fa_icon": "fas fa-cloud-download-alt",
-                    "hidden": true
+                    "description": "gtf file from the genome to be used to build index on the filtering step"
                 },
-                "igenomes_ignore": {
-                    "type": "boolean",
-                    "description": "Do not load the iGenomes reference config.",
-                    "fa_icon": "fas fa-ban",
+                "star_host_index": {
+                    "type": "string",
+                    "description": "STAR index from the genome to be used on filtering step"
+                },
+                "gtf_align": {
+                    "type": "string",
+                    "description": "gtf file from the target genome to build STAR index"
+                },
+                "star_org_index": {
+                    "type": "string",
+                    "description": "STAR index from the target genome"
+                },
+                "seq_center": {
+                    "type": "string",
+                    "description": "Sequencing Center"
+                },
+                "seq_platform": {
+                    "type": "string",
+                    "description": "Sequencing Plataform"
+                },
+                "save_unmapped": {
+                    "type": "string",
+                    "default": "Fastx",
                     "hidden": true,
-                    "help_text": "Do not load `igenomes.config` when running the pipeline. You may choose this option if you observe clashes between custom parameters and those supplied in `igenomes.config`."
+                    "description": "Param to --outReadsUnmapped (if set by none may crash the pipeline)"
                 }
-            }
+            },
+            "required": ["fasta_filter", "fasta_align", "gtf_filter", "gtf_align"]
         },
         "institutional_config_options": {
             "title": "Institutional config options",

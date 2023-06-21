@@ -11,7 +11,15 @@ WorkflowFinalproject.initialise(params, log)
 
 // TODO nf-core: Add all file path parameters for the pipeline to the list below
 // Check input path parameters to see if they exist
-def checkPathParamList = [ params.input, params.multiqc_config, params.fasta ]
+def checkPathParamList = [
+    params.input,
+    params.multiqc_config,
+    params.fasta_filter,
+    params.fasta_align,
+    params.gtf_filter,
+    params.gtf_align
+    ]
+
 for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
 
 // Check mandatory parameters
@@ -48,9 +56,16 @@ include { INPUT_CHECK } from '../subworkflows/local/input_check'
 //
 // MODULE: Installed directly from nf-core/modules
 //
-include { FASTQC                      } from '../modules/nf-core/fastqc/main'
-include { MULTIQC                     } from '../modules/nf-core/multiqc/main'
-include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/custom/dumpsoftwareversions/main'
+include { FASTQC                              } from '../modules/nf-core/fastqc/main'
+include { MULTIQC                             } from '../modules/nf-core/multiqc/main'
+include { CUSTOM_DUMPSOFTWAREVERSIONS         } from '../modules/nf-core/custom/dumpsoftwareversions/main'
+include { BOWTIE2_BUILD as BOWTIE2_BUILD_HOST } from '../modules/nf-core/bowtie2/build/main'
+include { BOWTIE2_ALIGN as BOWTIE2_ALIGN_HOST } from '../modules/nf-core/bowtie2/align/main'
+include { BOWTIE2_BUILD as BOWTIE2_BUILD_ORG  } from '../modules/nf-core/bowtie2/build/main'
+include { BOWTIE2_ALIGN as BOWTIE2_ALIGN_ORG  } from '../modules/nf-core/bowtie2/align/main'
+include { STARSOLO as STAR_HOST               } from '../subworkflows/local/starsolo'
+include { STARSOLO as STAR_ORG                } from '../subworkflows/local/starsolo'
+include { PREPARE_GENOME                      } from '../subworkflows/local/prepare_genome'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -74,19 +89,74 @@ workflow FINALPROJECT {
     ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
 
     //
+    // Get reads after checking went successfull
+    //
+    INPUT_CHECK.out.reads
+        .set{ ch_reads }
+
+
+    //
     // MODULE: Run FastQC
     //
     FASTQC (
-        INPUT_CHECK.out.reads
+        ch_reads
     )
     ch_versions = ch_versions.mix(FASTQC.out.versions.first())
 
+    //
+    // MODULEU: Run Gunzip files
+    //
+    PREPARE_GENOME(
+        params.fasta_filter,
+        params.gtf_filter,
+        params.fasta_align,
+        params.gtf_align,
+    )
+
+    //
+    // MODULE: Run STAR to filter reads against host
+    //
+    STAR_HOST(
+        PREPARE_GENOME.out.fasta_fil,
+        PREPARE_GENOME.out.gtf_fil,
+        params.star_host_index,
+        ch_reads,
+        params.save_unmapped,
+        params.seq_center,
+        params.seq_platform
+    )
+    ch_versions = ch_versions.mix(STAR_HOST.out.versions)
+
+    STAR_HOST.out.for_multiqc
+        .set{ ch_multiqc_star_samples_to_host }
+
+    //
+    // MODULE: Run STAR to align unmapped reads against organism of interest
+    //
+
+    STAR_ORG(
+        PREPARE_GENOME.out.fasta_al,
+        PREPARE_GENOME.out.gtf_al,
+        params.star_org_index,
+        STAR_HOST.out.result_unmapped,
+        params.save_unmapped,
+        params.seq_center,
+        params.seq_platform
+    )
+    ch_versions = ch_versions.mix(STAR_ORG.out.versions)
+
+    STAR_ORG.out.for_multiqc
+        .set{ ch_multiqc_star_filtered_samples_to_org }
+    STAR_ORG.out.read_per_gene_tab
+        .set{  ch_read_per_gene  }
+
+    // Dump software versions
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
     )
 
     //
-    // MODULE: MultiQC
+    // MODULE: Run MultiQC
     //
     workflow_summary    = WorkflowFinalproject.paramsSummaryMultiqc(workflow, summary_params)
     ch_workflow_summary = Channel.value(workflow_summary)
@@ -99,6 +169,8 @@ workflow FINALPROJECT {
     ch_multiqc_files = ch_multiqc_files.mix(ch_methods_description.collectFile(name: 'methods_description_mqc.yaml'))
     ch_multiqc_files = ch_multiqc_files.mix(CUSTOM_DUMPSOFTWAREVERSIONS.out.mqc_yml.collect())
     ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]}.ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(STAR_HOST.out.for_multiqc.collect{it[1]}.ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(STAR_ORG.out.for_multiqc.collect{it[1]}.ifEmpty([]))
 
     MULTIQC (
         ch_multiqc_files.collect(),
@@ -109,8 +181,7 @@ workflow FINALPROJECT {
     multiqc_report = MULTIQC.out.report.toList()
 }
 
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     COMPLETION EMAIL AND SUMMARY
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
